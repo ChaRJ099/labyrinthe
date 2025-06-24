@@ -8,7 +8,7 @@ async function startGame() {
         // "Content-type": "application/json"
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      //   body: JSON.stringify({ player: "chacha" }),
+      // body: JSON.stringify({ player: "chacha" }),
       body: "player=chacha",
     });
 
@@ -56,20 +56,22 @@ async function discover(discoverURL) {
   }
 }
 
-async function move() {
+async function move(moveURL, location) {
   try {
-    const response = await fetch(discoverURL, {
-      method: "GET",
+    const response = await fetch(moveURL, {
+      method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
+      body: `position_x=${location.x}&position_y=${location.y}`,
     });
 
     if (!response.ok) {
       throw new Error(data.message || `Erreur ${response}`);
     }
+    const data = await response.json();
 
-    return; //
+    return data;
   } catch (error) {
     console.error("Erreur dans move :", error);
     throw error;
@@ -77,13 +79,34 @@ async function move() {
 }
 
 async function main() {
-  const { discoverURL, moveURL, actualPosition } = await startGame();
+  const { discoverURL, moveURL } = await startGame();
+
+  //@TODO: créer boucle automatique pour sortir du labyrinthe
   const discoveredElements = await discover(discoverURL);
+  //@TODO: que faire si plusieurs safePath ?
+  //@TODO: que faire si on est bloqué dans un cul de sac ? (enregistrer toutes les cases traversées + chemin qui vient juste d'être emprunté ?=> lastPosition ?)
+  const safePath = discoveredElements.find((element) => element.move === true);
+  const location = {
+    x: safePath.x,
+    y: safePath.y,
+  };
+  const destination = await move(moveURL, location);
 
-  console.log("actualPosition", actualPosition);
   console.log("discoveredElements", discoveredElements);
-
-  // usefull if throw error else erase try catch
+  console.log("safePath", safePath);
+  console.log("location", location);
+  console.log("destination", destination);
 }
 
-main();
+await main();
+
+// implémenter une fonction récursive pour discover/move jusqu'à Win ou Death
+
+function recurs(param) {
+  console.log("param", param);
+  param++;
+  if (param > 10) return;
+  recurs(param);
+}
+
+recurs(0);
