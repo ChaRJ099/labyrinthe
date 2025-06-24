@@ -13,35 +13,77 @@ async function startGame() {
     });
 
     const data = await response.json();
-    console.log("Status:", response.status);
-    console.log("Data:", data);
 
     if (!response.ok) {
-      throw new Error(data.message || `Erreur ${response}`);
+      throw new Error(`Login failed: ${response.status}`);
     }
 
-    return data;
+    return {
+      discoverURL: data.url_discover,
+      moveURL: data.url_move,
+      actualPosition: {
+        positionX: data.position_x,
+        positionY: data.position_y,
+      },
+    };
   } catch (error) {
     console.error("Erreur dans startGame :", error);
     throw error;
   }
 }
-startGame();
 
-// async function main() {
-//   try {
-//     const gameData = await startGame();
+async function discover(discoverURL) {
+  try {
+    const response = await fetch(discoverURL, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
 
-//     console.log("Jeu lancé avec succès");
-//     console.log(
-//       "Coordonnées de départ :",
-//       gameData.position_x,
-//       gameData.position_y
-//     );
-//     console.log("gameData", gameData);
-//   } catch (error) {
-//     console.error("Erreur dans le processus :", error.message);
-//   }
-// }
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || `Erreur ${response}`);
+    }
+    let discoveredElements = [];
+    data.forEach((element) => {
+      discoveredElements.push(element);
+    });
+    return discoveredElements;
+  } catch (error) {
+    console.error("Erreur dans discover :", error);
+    throw error;
+  }
+}
 
-// main();
+async function move() {
+  try {
+    const response = await fetch(discoverURL, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(data.message || `Erreur ${response}`);
+    }
+
+    return; //
+  } catch (error) {
+    console.error("Erreur dans move :", error);
+    throw error;
+  }
+}
+
+async function main() {
+  const { discoverURL, moveURL, actualPosition } = await startGame();
+  const discoveredElements = await discover(discoverURL);
+
+  console.log("actualPosition", actualPosition);
+  console.log("discoveredElements", discoveredElements);
+
+  // usefull if throw error else erase try catch
+}
+
+main();
