@@ -1,15 +1,14 @@
 const BASE_URL = "https://hire-game-maze.pertimm.dev/";
-const playerName = "";
 
 let discoveryUrl = "";
 let moveUrl = "";
 
-// let pathsDiscovered = [];
+// let discoveredElements  = [];
 
 // let pathToMove = { positionX: null, positionY: null };
-let listPathMoveTrue = [];
+let availableMoves = [];
 
-let pathVisited = [];
+let visited = [];
 // let actualPosition = { positionX: null, positionY: null };
 
 async function startGame() {
@@ -58,12 +57,12 @@ async function discover(discoverURL) {
     if (!response.ok) {
       throw new Error(data.message || `Erreur ${response}`);
     }
-    let pathsDiscovered = [];
+    let discoveredElements = [];
     data.forEach((element) => {
-      pathsDiscovered.push(element);
+      discoveredElements.push(element);
     });
-    console.log("chemins découverts", pathsDiscovered);
-    return pathsDiscovered;
+    console.log("chemins découverts", discoveredElements);
+    return discoveredElements;
   } catch (error) {
     console.error("Erreur dans discover :", error);
     throw error;
@@ -94,72 +93,36 @@ async function move(moveURL, positionSent) {
   }
 }
 
-async function actionDiscMove(discoverURL, moveURL, actualPosition) {
-  const pathsDiscovered = await discover(discoverURL);
-  // let listPathMoveTrue = [];
-  // const safePath = pathsDiscovered.find((element) => element.move === true);
-  // listPathMoveTrue.push(safePath);
-  const listPathMoveTrue = pathsDiscovered.filter(
+async function actionDiscMove(discoverURL, moveURL) {
+  // 1- On récupère les 4 chemins proposés via discover
+  const discoveredElements = await discover(discoverURL);
+  // 2- On filtre les 4 chemins proposés pour ne garder que les "move = true" et on les stocke dans un tableau
+  const availableMoves = discoveredElements.filter(
     (element) => element.move === true
   );
 
-  console.log("PATHS TO MOVE", listPathMoveTrue);
+  // 3-Savoir combien de fois chaque chemin a été visité
+  availableMoves.forEach((move) => {
+    const key = `${move.x}${move.y}`;
+    const count = visited[key] || 0;
+    console.log(`Case (${key}) visitée ${count} fois`);
+  });
 
-  //@TODO : check tous les paths et faire les conditions avant de move
-  const positionToSend = {
-    x: listPathMoveTrue[0].x,
-    y: listPathMoveTrue[0].y,
-  };
+  // 4 - Choisir le move avec le plus petit compteur
 
-  pathVisited.push(positionToSend);
-  const destination = await move(moveURL, positionToSend);
-  console.log("pathVisited", pathVisited);
-  // actualPosition.positionX = destination.position_x;
-  // actualPosition.positionY = destination.position_y;
+  // 5 - move() vers cette case
+  await move(moveURL, positionToSend);
 
-  // console.log("pathsDiscovered", pathsDiscovered);
-  console.log("listPathMoveTrue", listPathMoveTrue);
-  console.log("destination", destination);
-
-  // console.log("safePath", safePath);
-
-  /* ===========> SI 1 SEUL CHEMIN <=========== */ /*<=== N'existe que lors de start game et cul-de-sac */
-  if (listPathMoveTrue.length === 1) {
-    console.log("1 chemin");
-    await actionDiscMove(discoverURL, moveURL, actualPosition);
-  }
-  /* ===========> SI 2 CHEMINS <=========== */ /*<=== Couloir tout droit où l'une des 2 cases est celle doù on vient */
-  if (listPathMoveTrue.length === 2) {
-    console.log("2 chemin");
-    console.log(listPathMoveTrue);
-    return;
-    // On boucle sur un tableau des cases visitées préalablement stockées :
-    //  si un des deux chemins visitables ne s'y trouve pas, on l'enregistre comme destination et le push dans le tableau des cases visitées
-  } else if (listPathMoveTrue.length > 2) {
-    // On calcule le chemin à gauche de actualPosition et on move dessus
-    console.log("3 chemins");
-    console.log(listPathMoveTrue);
-    return;
-  } else {
-    console.log("je sais pas");
-    return;
-  }
+  // 6 - Incrémenter le compteur pour la nouvelle case
 }
 
 async function main() {
-  const { discoverURL, moveURL, actualPosition } = await startGame(); // =====> DEBUT DU JEU
-  pathVisited.push(actualPosition);
-
-  // ========> Si le jeu a démarré
-  if (discoverURL != "") {
-    // ====> on lance actionDiscMove(discoverURL, moveURL);
-    // console.log("discoverURL", discoverURL);
-    await actionDiscMove(discoverURL, moveURL, actualPosition);
-  } else {
-    console.log("oups");
-    console.log(error);
-    return;
-  }
-  return;
+  const { discoverURL, moveURL, actualPosition } = await startGame();
+  await actionDiscMove(discoverURL, moveURL, actualPosition);
 }
 await main();
+
+// const positionToSend = {
+//   x: availableMoves[0].x,
+//   y: availableMoves[0].y,
+//
