@@ -1,4 +1,16 @@
 const BASE_URL = "https://hire-game-maze.pertimm.dev/";
+const playerName = "";
+
+let discoveryUrl = "";
+let moveUrl = "";
+
+// let pathsDiscovered = [];
+
+// let pathToMove = { positionX: null, positionY: null };
+let listPathMoveTrue = [];
+
+let pathVisited = [];
+// let actualPosition = { positionX: null, positionY: null };
 
 async function startGame() {
   console.log("C'est parti");
@@ -23,8 +35,8 @@ async function startGame() {
       discoverURL: data.url_discover,
       moveURL: data.url_move,
       actualPosition: {
-        positionX: data.position_x,
-        positionY: data.position_y,
+        x: data.position_x,
+        y: data.position_y,
       },
     };
   } catch (error) {
@@ -46,28 +58,28 @@ async function discover(discoverURL) {
     if (!response.ok) {
       throw new Error(data.message || `Erreur ${response}`);
     }
-    let discoveredElements = [];
+    let pathsDiscovered = [];
     data.forEach((element) => {
-      discoveredElements.push(element);
+      pathsDiscovered.push(element);
     });
-    return discoveredElements;
+    console.log("chemins découverts", pathsDiscovered);
+    return pathsDiscovered;
   } catch (error) {
     console.error("Erreur dans discover :", error);
     throw error;
   }
 }
 
-async function move(moveURL, location) {
-  console.log("Coordonnées envoyées :", location);
+async function move(moveURL, positionSent) {
+  console.log("Coordonnées envoyées :", positionSent);
 
-  console.log("Appel moveURL :", moveURL);
   try {
     const response = await fetch(moveURL, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: `position_x=${location.x}&position_y=${location.y}`,
+      body: `position_x=${positionSent.x}&position_y=${positionSent.y}`,
     });
 
     const data = await response.json();
@@ -83,60 +95,60 @@ async function move(moveURL, location) {
 }
 
 async function actionDiscMove(discoverURL, moveURL, actualPosition) {
-  const discoveredElements = await discover(discoverURL);
-  //@TODO: que faire si on est bloqué dans un cul de sac ? (enregistrer toutes les cases traversées + chemin qui vient juste d'être emprunté ?=> lastPosition ?)
-  //@TODO: ou alors, choisir toujours gauche ou toujours droite comme chemin à suivre sauf si demi-tour ou tout droit ou 1 seul path possible,
-  //       preferer le tout droit plutot que la position opposée de celle par défaut
-  // let safePathList = [];
-  // const safePath = discoveredElements.find((element) => element.move === true);
-  // safePathList.push(safePath);
-  const safePathList = discoveredElements.filter(
+  const pathsDiscovered = await discover(discoverURL);
+  // let listPathMoveTrue = [];
+  // const safePath = pathsDiscovered.find((element) => element.move === true);
+  // listPathMoveTrue.push(safePath);
+  const listPathMoveTrue = pathsDiscovered.filter(
     (element) => element.move === true
   );
 
-  const location = {
-    x: safePathList[0].x,
-    y: safePathList[0].y,
+  console.log("PATHS TO MOVE", listPathMoveTrue);
+
+  //@TODO : check tous les paths et faire les conditions avant de move
+  const positionToSend = {
+    x: listPathMoveTrue[0].x,
+    y: listPathMoveTrue[0].y,
   };
-  console.log("Position actuelle avant move :", actualPosition);
-  const destination = await move(moveURL, location);
-  actualPosition.positionX = destination.position_x;
-  actualPosition.positionY = destination.position_y;
 
-  console.log("Position cible envoyée à move :", location);
-  console.log("Position retournée après move :", {
-    x: destination.position_x,
-    y: destination.position_y,
-  });
+  pathVisited.push(positionToSend);
+  const destination = await move(moveURL, positionToSend);
+  console.log("pathVisited", pathVisited);
+  // actualPosition.positionX = destination.position_x;
+  // actualPosition.positionY = destination.position_y;
 
-  // console.log("discoveredElements", discoveredElements);
-  console.log("safePathList", safePathList);
-  // console.log("location", location);
+  // console.log("pathsDiscovered", pathsDiscovered);
+  console.log("listPathMoveTrue", listPathMoveTrue);
   console.log("destination", destination);
 
   // console.log("safePath", safePath);
-  if (safePathList.length === 0) {
-    console.log("Aucun chemin possible : fin du jeu ou cul-de-sac.");
-    return;
-  } else if (safePathList.length === 1) {
-    console.log("1 chemin : on relance actionDiscMove");
+
+  /* ===========> SI 1 SEUL CHEMIN <=========== */ /*<=== N'existe que lors de start game et cul-de-sac */
+  if (listPathMoveTrue.length === 1) {
+    console.log("1 chemin");
     await actionDiscMove(discoverURL, moveURL, actualPosition);
-  } else if (safePathList.length > 1) {
+  }
+  /* ===========> SI 2 CHEMINS <=========== */ /*<=== Couloir tout droit où l'une des 2 cases est celle doù on vient */
+  if (listPathMoveTrue.length === 2) {
+    console.log("2 chemin");
+    console.log(listPathMoveTrue);
+    return;
+    // On boucle sur un tableau des cases visitées préalablement stockées :
+    //  si un des deux chemins visitables ne s'y trouve pas, on l'enregistre comme destination et le push dans le tableau des cases visitées
+  } else if (listPathMoveTrue.length > 2) {
     // On calcule le chemin à gauche de actualPosition et on move dessus
-    console.log(
-      "Plusieurs chemins : on relance actionDiscMove sur le chemin de gauche"
-    );
-    console.log(safePathList);
-    // actionDiscMove(discoverURL, moveURL);
+    console.log("3 chemins");
+    console.log(listPathMoveTrue);
+    return;
   } else {
     console.log("je sais pas");
     return;
   }
-  return;
 }
 
 async function main() {
   const { discoverURL, moveURL, actualPosition } = await startGame(); // =====> DEBUT DU JEU
+  pathVisited.push(actualPosition);
 
   // ========> Si le jeu a démarré
   if (discoverURL != "") {
